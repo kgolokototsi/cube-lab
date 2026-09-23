@@ -139,6 +139,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 .speed{display:flex;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--surface-2)}
 .speed button{background:transparent;border:0;padding:0 11px;height:42px;font-family:var(--font-ui);font-size:13px;color:var(--muted)}
 .speed button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.speed button.superslow[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.speed button.superslow{white-space:nowrap}
 
 .strip{display:flex;gap:5px;overflow-x:auto;padding:4px 2px 8px;min-height:52px;align-items:center}
 .strip:empty::before{content:"No moves yet — press Play.";color:var(--faint);font-size:13px}
@@ -219,6 +221,7 @@ button{font:inherit;color:inherit;cursor:pointer}
         <button class="tbtn play" id="btnPlay">Play this step</button>
         <button class="tbtn" id="btnFwd" title="One move on">&rsaquo;</button>
         <div class="speed" id="speed">
+          <button data-ms="2300" class="superslow">Super slow</button>
           <button data-ms="820">Slow</button>
           <button data-ms="420" aria-pressed="true">Normal</button>
           <button data-ms="190">Fast</button>
