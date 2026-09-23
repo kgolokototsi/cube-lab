@@ -105,9 +105,25 @@ button{font:inherit;color:inherit;cursor:pointer}
 .step-btn[aria-current="true"] .n{background:var(--ink);color:var(--surface)}
 .step-btn.done .n{background:var(--accent);color:var(--accent-ink)}
 .step-btn .t{font-family:var(--font-ui);font-size:14px;font-weight:500;white-space:nowrap}
-.legend dl{margin:0;padding-top:10px;display:grid;grid-template-columns:auto 1fr;gap:7px 12px;font-size:13px}
-.legend dt{font-family:var(--font-ui);font-weight:600}
-.legend dd{margin:0;color:var(--muted)}
+.deflist{margin:0;display:grid;grid-template-columns:auto 1fr;gap:9px 14px;font-size:14px}
+.deflist dt{font-family:var(--font-ui);font-weight:600;white-space:nowrap}
+.deflist dd{margin:0;color:var(--muted)}
+
+/* ---------- settings sheet ---------- */
+.sheet{border:0;padding:0;background:var(--surface);color:var(--ink);border-radius:18px;
+  width:min(560px, calc(100vw - 32px));max-height:min(84vh,780px);overflow:auto;box-shadow:var(--shadow)}
+.sheet::backdrop{background:rgba(6,9,14,.6)}
+.sheet.fallback{display:none;position:fixed;top:4vh;left:50%;transform:translateX(-50%);z-index:60}
+.sheet.fallback[open]{display:block}
+.sheet-back{position:fixed;inset:0;background:rgba(6,9,14,.6);z-index:59}
+.sheet-head{position:sticky;top:0;z-index:1;background:var(--surface);display:flex;align-items:center;
+  justify-content:space-between;gap:16px;padding:15px 18px;border-bottom:1px solid var(--line)}
+.sheet-head h2{font-size:19px;font-weight:600}
+.sheet-sec{padding:16px 18px;border-bottom:1px solid var(--line-soft)}
+.sheet-sec:last-child{border-bottom:0}
+.sheet-sec h3{font-family:var(--font-ui);font-size:12px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 11px}
+.hintline{margin:11px 0 0;font-size:13px;color:var(--muted)}
 
 /* ---------- stage ---------- */
 .stage{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);
@@ -211,6 +227,7 @@ button{font:inherit;color:inherit;cursor:pointer}
     <div class="tools">
       <button class="btn" id="btnScramble">Mix it up</button>
       <button class="btn" id="btnReset">Solved cube</button>
+      <button class="btn" id="btnSettings">Settings</button>
     </div>
   </header>
 
@@ -243,31 +260,56 @@ button{font:inherit;color:inherit;cursor:pointer}
           <summary>Turn it yourself</summary>
           <div class="pad" id="pad"></div>
         </details>
-        <details id="soundbox">
-          <summary>Sound</summary>
-          <div class="switches" id="switches">
-            <button class="sw" data-k="moves">Say the moves</button>
-            <button class="sw" data-k="hints">Say the hints</button>
-            <button class="sw" data-k="cheers">Cheers &amp; jingle</button>
-          </div>
-        </details>
-        <details class="legend">
-          <summary>What the letters mean</summary>
-          <dl>
-            <dt>R L</dt><dd>right side, left side</dd>
-            <dt>U D</dt><dd>top, bottom</dd>
-            <dt>F B</dt><dd>front, back</dd>
-            <dt>&prime;</dt><dd>turn it the other way</dd>
-            <dt>2</dt><dd>turn it twice</dd>
-            <dt>y</dt><dd>turn the whole cube, so the right side comes to the front</dd>
-          </dl>
-        </details>
       </div>
     </section>
 
     <aside class="panel" id="panel"></aside>
   </main>
 </div>
+
+<div class="sheet-back" id="sheetBack" hidden></div>
+<dialog class="sheet" id="settings" aria-label="Settings">
+  <div class="sheet-head">
+    <h2>Settings</h2>
+    <button class="btn" id="btnSettingsDone">Done</button>
+  </div>
+
+  <section class="sheet-sec">
+    <h3>Sound</h3>
+    <div class="switches" id="switches">
+      <button class="sw" data-k="moves">Say the moves</button>
+      <button class="sw" data-k="cheers">Cheers &amp; jingle</button>
+    </div>
+    <p class="hintline">The voice only speaks on <b>Super slow</b>. At the quicker speeds the next move
+      arrives before the last one has finished being said, so it stays quiet instead.</p>
+  </section>
+
+  <section class="sheet-sec">
+    <h3>What the letters mean</h3>
+    <dl class="deflist">
+      <dt>R L</dt><dd>right side, left side</dd>
+      <dt>U D</dt><dd>up, down</dd>
+      <dt>F B</dt><dd>face (the side pointing at you), back</dd>
+      <dt>&prime;</dt><dd>inverted &mdash; turn it the other way</dd>
+      <dt>2</dt><dd>turn it twice</dd>
+      <dt>y</dt><dd>turn the whole cube to the left, so the right side comes to the front</dd>
+    </dl>
+  </section>
+
+  <section class="sheet-sec">
+    <h3>Cube words</h3>
+    <dl class="deflist">
+      <dt>Daisy</dt><dd>the yellow centre on top with the four white edges around it &mdash; it looks like a flower</dd>
+      <dt>Petal</dt><dd>one of those four white edges</dd>
+      <dt>Edge</dt><dd>a piece with <b>two</b> colours. There are 12</dd>
+      <dt>Corner</dt><dd>a piece with <b>three</b> colours. There are 8</dd>
+      <dt>Centre</dt><dd>the middle piece of a face. It never moves &mdash; so the centre colour is
+        always that face&rsquo;s colour, and every other piece has to come to it</dd>
+      <dt>Layer</dt><dd>one slice of nine stickers: bottom, middle, top</dd>
+      <dt>Algorithm</dt><dd>a set order of moves that does one job and leaves the rest of the cube alone</dd>
+    </dl>
+  </section>
+</dialog>
 <script>
 /* ============================================================
    Oarabile's Cube Lab — cube engine + layer-by-layer solver
@@ -417,8 +459,7 @@ var SPEAK_FACE = { R:'right', L:'left', U:'up', D:'down', F:'face', B:'back' };
 function moveSpeech(tok){
   if(!tok) return '';
   var f = tok.charAt(0), suf = tok.slice(1);
-  if(f === 'y') return suf === "'" ? 'turn the cube, left side to the front'
-                                   : 'turn the cube, right side to the front';
+  if(f === 'y') return suf === "'" ? 'turn the cube right' : 'turn the cube left';
   if(f === 'x' || f === 'z') return 'turn the whole cube';
   var name = SPEAK_FACE[f];
   if(!name) return '';
@@ -914,7 +955,7 @@ var queue = [], qi = 0, keyEls = [];
 var playing = false, timer = null, raf = null, speed = 420;
 var stars = {};
 var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-var sound = { on:true, moves:true, hints:true, cheers:true };
+var sound = { on:true, moves:true, cheers:true };
 var voice = null, actx = null;
 var canSpeak = ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
 var canTone  = !!(window.AudioContext || window.webkitAudioContext);
@@ -1022,39 +1063,24 @@ function pickVoice(){
     voice = local[0] || en[0] || vs[0];
   } catch(e){}
 }
-function speechRate(){
-  if(speed >= 2000) return 0.80;
-  if(speed >= 800)  return 0.92;
-  if(speed >= 400)  return 1.02;
-  return 1.15;
-}
-/* kind: 'move' | 'hint' | 'cheer' | null (already filtered) */
-function say(text, kind){
-  if(!canSpeak || !sound.on || !text) return;
-  if(kind === 'move'  && !sound.moves)  return;
-  if(kind === 'hint'  && !sound.hints)  return;
-  if(kind === 'cheer' && !sound.cheers) return;
+/* The voice speaks only on Super slow (speed 2300); anything quicker clips
+   each phrase off with the next move, so it stays silent instead. */
+function voiceOn(){ return canSpeak && sound.on && sound.moves && speed >= 2000; }
+function say(text){
+  if(!voiceOn() || !text) return;
   try {
     window.speechSynthesis.cancel();          /* never let speech lag behind the cube */
     var u = new SpeechSynthesisUtterance(text);
     if(voice){ u.voice = voice; u.lang = voice.lang; } else { u.lang = 'en-US'; }
-    u.rate = speechRate();
+    u.rate = 0.85;
     u.pitch = 1;
     window.speechSynthesis.speak(u);
   } catch(e){}
 }
 function hush(){ try { if(canSpeak) window.speechSynthesis.cancel(); } catch(e){} }
 
-/* one utterance per move, so the hint and the move name cannot cancel each other */
-function sayMove(mv){
-  var parts = [];
-  if(mv.why && sound.hints) parts.push(mv.why.charAt(0).toUpperCase() + mv.why.slice(1) + '.');
-  if(sound.moves){
-    var phrase = moveSpeech(mv.t);
-    if(phrase) parts.push(phrase);
-  }
-  if(parts.length) say(parts.join(' '), null);
-}
+/* just the move, nothing else - "up inverted", "down", "right" */
+function sayMove(mv){ say(moveSpeech(mv.t)); }
 
 function audio(){
   if(actx || !canTone) return actx;
@@ -1123,7 +1149,7 @@ function tick(){
     stop();
     var n = nextUnfinished();
     setCaption(n ? 'Step done. Next up: <b>' + STEPS[n-1].title + '</b>.' : '');
-    if(n){ say('Step done. Next up, ' + STEPS[n-1].title + '.', 'cheer'); jingle(false); }
+    if(n) jingle(false);
     return;
   }
   stepForward(function(){
@@ -1143,7 +1169,6 @@ function play(){
       return;
     }
     loadQueue(r.moves);
-    say('Step ' + n + '. ' + STEPS[n-1].title + '.', 'hint');
   }
   playing = true;
   updateTransport();
@@ -1171,7 +1196,7 @@ function afterMove(){
   if(now !== wasSolved){
     wasSolved = now;
     renderPanel();
-    if(now){ say('Solved! Nice one, Oarabile.', 'cheer'); jingle(true); }
+    if(now) jingle(true);
   }
 }
 function paintProgress(){
@@ -1387,6 +1412,26 @@ function paintSound(){
   });
 }
 
+/* ---------------- settings sheet ---------------- */
+function openSettings(){
+  var d = $('settings');
+  if(!d) return;
+  if(typeof d.showModal === 'function'){
+    try { d.showModal(); return; } catch(e){}
+  }
+  d.classList.add('fallback');          /* no <dialog> support (iOS before 15.4) */
+  d.setAttribute('open', '');
+  if($('sheetBack')) $('sheetBack').hidden = false;
+}
+function closeSettings(){
+  var d = $('settings');
+  if(!d) return;
+  if(d.open && typeof d.close === 'function'){ try { d.close(); } catch(e){} }
+  d.removeAttribute('open');
+  d.classList.remove('fallback');
+  if($('sheetBack')) $('sheetBack').hidden = true;
+}
+
 /* ---------------- storage ---------------- */
 function save(){
   try {
@@ -1401,7 +1446,7 @@ function load(){
     var snd = localStorage.getItem('ocl.sound');
     if(snd){
       var o = JSON.parse(snd) || {};
-      ['on','moves','hints','cheers'].forEach(function(k){
+      ['on','moves','cheers'].forEach(function(k){
         if(typeof o[k] === 'boolean') sound[k] = o[k];
       });
     }
@@ -1433,7 +1478,7 @@ function buildPad(){
       unlockAudio();
       animateMove(t, reduce ? 0 : 240, afterMove);
       setCaption(t.charAt(0) === 'y' ? rotLabel(t) : 'You turned <b>' + pretty(t) + '</b>.');
-      say(moveSpeech(t), 'move');
+      say(moveSpeech(t));
     };
     pad.appendChild(b);
   });
@@ -1506,9 +1551,14 @@ function start(data){
     pickVoice();
     try { window.speechSynthesis.onvoiceschanged = pickVoice; } catch(e){}
   }
+  $('btnSettings').onclick = openSettings;
+  $('btnSettingsDone').onclick = closeSettings;
+  $('sheetBack').addEventListener('click', closeSettings);
+  /* a click that lands on the dialog itself is a click on its backdrop */
+  $('settings').addEventListener('click', function(e){ if(e.target === $('settings')) closeSettings(); });
+
   if(!canSpeak && !canTone){
     if($('btnSound')) $('btnSound').hidden = true;
-    if($('soundbox')) $('soundbox').hidden = true;
   } else {
     paintSound();
     $('btnSound').onclick = function(){
