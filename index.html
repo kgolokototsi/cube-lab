@@ -953,7 +953,7 @@ var cur = 1;                 // selected step
 var S = 64;                  // cubie size in px
 var ax = -24, ay = -32;      // view angles
 var queue = [], qi = 0, keyEls = [];
-var playing = false, timer = null, raf = null, speed = 420;
+var playing = false, timer = null, raf = null, animGen = 0, speed = 420;
 var stars = {};
 var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 var sound = { on:true, moves:true, cheers:true };
@@ -1003,6 +1003,12 @@ function render(spin){
 }
 function applyView(){ cubeEl.style.transform = 'rotateX(' + ax + 'deg) rotateY(' + ay + 'deg)'; }
 
+/* Drop any turn still in flight. Bumping animGen also neuters a frame callback
+   that was already queued for the next tick and so escapes cancelAnimationFrame. */
+function cancelAnim(){
+  if(raf){ cancelAnimationFrame(raf); raf = null; }
+  animGen++;
+}
 function animateMove(tok, ms, done){
   var f = tok.charAt(0), suf = tok.slice(1);
   var n = suf === "'" ? 3 : suf === '2' ? 2 : 1;
@@ -1014,14 +1020,16 @@ function animateMove(tok, ms, done){
   var idx = AXI[d.ax];
   var group = state.filter(function(c){ return d.layer === null || c.p[idx] === d.layer; });
   var t0 = performance.now();
+  var gen = animGen;
   function frame(now){
+    if(gen !== animGen) return;        /* the cube was replaced under us */
     var k = Math.min(1, (now - t0) / ms);
     var e = k < .5 ? 4*k*k*k : 1 - Math.pow(-2*k + 2, 3) / 2;
     var map = new Map();
     for(var i=0;i<group.length;i++) map.set(group[i], spinFn + '(' + (deg*e).toFixed(2) + 'deg)');
     render(map);
     if(k < 1) raf = requestAnimationFrame(frame);
-    else { applyMove(state, tok); render(); done && done(); }
+    else { raf = null; applyMove(state, tok); render(); done && done(); }
   }
   raf = requestAnimationFrame(frame);
 }
@@ -1361,11 +1369,15 @@ function select(n){
 
 /* ---------------- actions ---------------- */
 function setState(s){
+  cancelAnim();              /* Mix it up / Solved cube replace the whole cube */
   state = s;
   wasSolved = isSolved(state);
   queue = []; qi = 0; keyEls = [];
   renderStrip();
   render();
+  /* one more paint next frame, so a 3D subtree that went stale re-composites */
+  var g = animGen;
+  requestAnimationFrame(function(){ if(g === animGen) render(); });
   paintProgress();
   renderPanel();
   updateTransport();
