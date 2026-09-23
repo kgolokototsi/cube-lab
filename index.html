@@ -141,6 +141,15 @@ button{font:inherit;color:inherit;cursor:pointer}
 .speed button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
 .speed button.superslow[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 .speed button.superslow{white-space:nowrap}
+#btnSound{gap:7px;font-size:14px}
+#btnSound .ico{font-size:16px;line-height:1}
+#btnSound[aria-pressed="false"]{opacity:.5}
+.switches{display:flex;flex-wrap:wrap;gap:8px;padding-top:10px}
+.sw{background:transparent;border:1px solid var(--line);border-radius:10px;padding:8px 12px;
+  font-family:var(--font-ui);font-size:13px;font-weight:500;color:var(--muted);white-space:nowrap}
+.sw::before{content:"\25cb  "}
+.sw[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.sw[aria-pressed="true"]::before{content:"\25cf  "}
 
 .strip{display:flex;gap:5px;overflow-x:auto;padding:4px 2px 8px;min-height:52px;align-items:center}
 .strip:empty::before{content:"No moves yet — press Play.";color:var(--faint);font-size:13px}
@@ -226,12 +235,21 @@ button{font:inherit;color:inherit;cursor:pointer}
           <button data-ms="420" aria-pressed="true">Normal</button>
           <button data-ms="190">Fast</button>
         </div>
+        <button class="tbtn" id="btnSound" aria-pressed="true" title="Sound is on"><span class="ico">&#128266;</span> Sound</button>
       </div>
       <div class="strip" id="strip"></div>
       <div class="utils">
         <details>
           <summary>Turn it yourself</summary>
           <div class="pad" id="pad"></div>
+        </details>
+        <details id="soundbox">
+          <summary>Sound</summary>
+          <div class="switches" id="switches">
+            <button class="sw" data-k="moves">Say the moves</button>
+            <button class="sw" data-k="hints">Say the hints</button>
+            <button class="sw" data-k="cheers">Cheers &amp; jingle</button>
+          </div>
         </details>
         <details class="legend">
           <summary>What the letters mean</summary>
@@ -392,6 +410,22 @@ function stickerFacing(c,dir){
   return null;
 }
 function edgePos(f){ return [FACE_DIR[f][0], -1, FACE_DIR[f][2]]; } // top-layer edge touching side face f
+
+/* ---------- how the moves are said out loud ----------
+   Oarabile's own words: ' is "inverted", F is "face", U is "up", D is "down". */
+var SPEAK_FACE = { R:'right', L:'left', U:'up', D:'down', F:'face', B:'back' };
+function moveSpeech(tok){
+  if(!tok) return '';
+  var f = tok.charAt(0), suf = tok.slice(1);
+  if(f === 'y') return suf === "'" ? 'turn the cube, left side to the front'
+                                   : 'turn the cube, right side to the front';
+  if(f === 'x' || f === 'z') return 'turn the whole cube';
+  var name = SPEAK_FACE[f];
+  if(!name) return '';
+  if(suf === "'") return name + ' inverted';
+  if(suf === '2') return name + ' twice';
+  return name;
+}
 
 /* ---------- the seven steps ---------- */
 
@@ -781,7 +815,7 @@ function scrambleAlg(n){
 if(typeof module!=='undefined' && module.exports){
   module.exports={ newCube:newCube, cloneCube:cloneCube, applyMove:applyMove, applyAlg:applyAlg,
     invertAlg:invertAlg, tokens:tokens, isSolved:isSolved, solveStep:solveStep, solveAll:solveAll,
-    scrambleAlg:scrambleAlg, stepDone:stepDone, ALGS:ALGS, pieceStickers:pieceStickers,
+    scrambleAlg:scrambleAlg, stepDone:stepDone, moveSpeech:moveSpeech, ALGS:ALGS, pieceStickers:pieceStickers,
     FACE_COLOR:FACE_COLOR, FACE_DIR:FACE_DIR, centerColor:centerColor, yellowUpFaces:yellowUpFaces };
 }
 
@@ -880,6 +914,10 @@ var queue = [], qi = 0, keyEls = [];
 var playing = false, timer = null, raf = null, speed = 420;
 var stars = {};
 var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var sound = { on:true, moves:true, hints:true, cheers:true };
+var voice = null, actx = null;
+var canSpeak = ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
+var canTone  = !!(window.AudioContext || window.webkitAudioContext);
 
 var $ = function(id){ return document.getElementById(id); };
 var cubeEl, sceneEl, stripEl, capEl, panelEl, railEl, pipsEl;
@@ -973,6 +1011,88 @@ function renderStrip(){
 }
 function setCaption(html){ capEl.innerHTML = html; }
 
+/* ---------------- voice and jingle ---------------- */
+function pickVoice(){
+  if(!canSpeak) return;
+  try {
+    var vs = window.speechSynthesis.getVoices() || [];
+    if(!vs.length) return;
+    var en = vs.filter(function(v){ return /^en/i.test(v.lang || ''); });
+    var local = en.filter(function(v){ return v.localService; });   /* offline-capable first */
+    voice = local[0] || en[0] || vs[0];
+  } catch(e){}
+}
+function speechRate(){
+  if(speed >= 2000) return 0.80;
+  if(speed >= 800)  return 0.92;
+  if(speed >= 400)  return 1.02;
+  return 1.15;
+}
+/* kind: 'move' | 'hint' | 'cheer' | null (already filtered) */
+function say(text, kind){
+  if(!canSpeak || !sound.on || !text) return;
+  if(kind === 'move'  && !sound.moves)  return;
+  if(kind === 'hint'  && !sound.hints)  return;
+  if(kind === 'cheer' && !sound.cheers) return;
+  try {
+    window.speechSynthesis.cancel();          /* never let speech lag behind the cube */
+    var u = new SpeechSynthesisUtterance(text);
+    if(voice){ u.voice = voice; u.lang = voice.lang; } else { u.lang = 'en-US'; }
+    u.rate = speechRate();
+    u.pitch = 1;
+    window.speechSynthesis.speak(u);
+  } catch(e){}
+}
+function hush(){ try { if(canSpeak) window.speechSynthesis.cancel(); } catch(e){} }
+
+/* one utterance per move, so the hint and the move name cannot cancel each other */
+function sayMove(mv){
+  var parts = [];
+  if(mv.why && sound.hints) parts.push(mv.why.charAt(0).toUpperCase() + mv.why.slice(1) + '.');
+  if(sound.moves){
+    var phrase = moveSpeech(mv.t);
+    if(phrase) parts.push(phrase);
+  }
+  if(parts.length) say(parts.join(' '), null);
+}
+
+function audio(){
+  if(actx || !canTone) return actx;
+  try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ actx = null; }
+  return actx;
+}
+function unlockAudio(){
+  var c = audio();
+  if(c && c.state === 'suspended'){ try { c.resume(); } catch(e){} }
+}
+function tone(c, freq, start, dur, gain){
+  var o = c.createOscillator(), g = c.createGain();
+  o.type = 'triangle';
+  o.frequency.setValueAtTime(freq, start);
+  g.gain.setValueAtTime(0.0001, start);
+  g.gain.exponentialRampToValueAtTime(gain, start + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  o.connect(g); g.connect(c.destination);
+  o.start(start); o.stop(start + dur + 0.03);
+}
+/* plays under the spoken cheer, quiet enough not to mask it */
+function jingle(big){
+  if(!sound.on || !sound.cheers) return;
+  var c = audio();
+  if(!c) return;
+  try {
+    var t = c.currentTime + 0.02;
+    var notes = big ? [523.25, 659.25, 783.99, 1046.50] : [523.25, 659.25, 783.99];
+    var gap = big ? 0.13 : 0.11;
+    for(var i=0;i<notes.length;i++) tone(c, notes[i], t + i*gap, big ? 0.50 : 0.30, 0.12);
+    if(big){
+      var tail = t + notes.length * gap;
+      tone(c, 1318.51, tail, 0.70, 0.05);
+      tone(c, 1567.98, tail + 0.08, 0.60, 0.04);
+    }
+  } catch(e){}
+}
+
 /* ---------------- playback ---------------- */
 function loadQueue(moves){ queue = moves; qi = 0; renderStrip(); updateTransport(); }
 function stop(){
@@ -985,6 +1105,7 @@ function stepForward(after){
   var mv = queue[qi];
   if(mv.why) setCaption(mv.why.charAt(0).toUpperCase() + mv.why.slice(1));
   else if(mv.t.charAt(0) === 'y') setCaption(rotLabel(mv.t));
+  sayMove(mv);
   qi++;
   renderStrip();
   animateMove(mv.t, Math.max(90, speed * 0.72), function(){ afterMove(); after && after(); });
@@ -1002,6 +1123,7 @@ function tick(){
     stop();
     var n = nextUnfinished();
     setCaption(n ? 'Step done. Next up: <b>' + STEPS[n-1].title + '</b>.' : '');
+    if(n){ say('Step done. Next up, ' + STEPS[n-1].title + '.', 'cheer'); jingle(false); }
     return;
   }
   stepForward(function(){
@@ -1010,6 +1132,7 @@ function tick(){
 }
 function play(){
   if(playing){ stop(); return; }
+  unlockAudio();
   if(qi >= queue.length){
     var n = nextUnfinished();
     if(!n){ setCaption('The cube is already solved. Press <b>Mix it up</b> to try again.'); return; }
@@ -1020,6 +1143,7 @@ function play(){
       return;
     }
     loadQueue(r.moves);
+    say('Step ' + n + '. ' + STEPS[n-1].title + '.', 'hint');
   }
   playing = true;
   updateTransport();
@@ -1044,7 +1168,11 @@ function afterMove(){
   paintProgress();
   var now = isSolved(state);
   if(now) setCaption('<b>Solved!</b> Nice one, Oarabile.');
-  if(now !== wasSolved){ wasSolved = now; renderPanel(); }
+  if(now !== wasSolved){
+    wasSolved = now;
+    renderPanel();
+    if(now){ say('Solved! Nice one, Oarabile.', 'cheer'); jingle(true); }
+  }
 }
 function paintProgress(){
   pipsEl.textContent = '';
@@ -1245,14 +1373,38 @@ function setupStep(n){
   setCaption('Couldn’t set that up — try again.');
 }
 
+function paintSound(){
+  var b = $('btnSound');
+  if(b){
+    b.setAttribute('aria-pressed', sound.on ? 'true' : 'false');
+    b.innerHTML = sound.on ? '<span class="ico">&#128266;</span> Sound'
+                            : '<span class="ico">&#128263;</span> Muted';
+    b.title = sound.on ? 'Sound is on' : 'Sound is off';
+  }
+  var sw = $('switches');
+  if(sw) Array.prototype.forEach.call(sw.children, function(x){
+    x.setAttribute('aria-pressed', sound[x.dataset.k] ? 'true' : 'false');
+  });
+}
+
 /* ---------------- storage ---------------- */
 function save(){
-  try { localStorage.setItem('ocl.stars', JSON.stringify(stars)); } catch(e){}
+  try {
+    localStorage.setItem('ocl.stars', JSON.stringify(stars));
+    localStorage.setItem('ocl.sound', JSON.stringify(sound));
+  } catch(e){}
 }
 function load(){
   try {
     var raw = localStorage.getItem('ocl.stars');
     if(raw) stars = JSON.parse(raw) || {};
+    var snd = localStorage.getItem('ocl.sound');
+    if(snd){
+      var o = JSON.parse(snd) || {};
+      ['on','moves','hints','cheers'].forEach(function(k){
+        if(typeof o[k] === 'boolean') sound[k] = o[k];
+      });
+    }
   } catch(e){ stars = {}; }
 }
 
@@ -1278,8 +1430,10 @@ function buildPad(){
     b.onclick = function(){
       stop();
       queue = []; qi = 0; renderStrip();
+      unlockAudio();
       animateMove(t, reduce ? 0 : 240, afterMove);
       setCaption(t.charAt(0) === 'y' ? rotLabel(t) : 'You turned <b>' + pretty(t) + '</b>.');
+      say(moveSpeech(t), 'move');
     };
     pad.appendChild(b);
   });
@@ -1347,6 +1501,29 @@ function start(data){
   $('btnBack').onclick = function(){ stop(); stepBack(); };
   $('btnScramble').onclick = scramble;
   $('btnReset').onclick = function(){ stop(); setState(newCube()); setCaption('A solved cube. Mix it up whenever you like.'); };
+
+  if(canSpeak){
+    pickVoice();
+    try { window.speechSynthesis.onvoiceschanged = pickVoice; } catch(e){}
+  }
+  if(!canSpeak && !canTone){
+    if($('btnSound')) $('btnSound').hidden = true;
+    if($('soundbox')) $('soundbox').hidden = true;
+  } else {
+    paintSound();
+    $('btnSound').onclick = function(){
+      sound.on = !sound.on;
+      if(sound.on) unlockAudio(); else hush();
+      save(); paintSound();
+    };
+    $('switches').addEventListener('click', function(e){
+      var b = e.target.closest('button[data-k]');
+      if(!b) return;
+      sound[b.dataset.k] = !sound[b.dataset.k];
+      if(!sound[b.dataset.k]) hush();
+      save(); paintSound();
+    });
+  }
 
   var sp = $('speed');
   sp.addEventListener('click', function(e){
