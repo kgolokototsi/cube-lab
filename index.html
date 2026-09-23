@@ -23,9 +23,9 @@
   --line:#d9e0ea; --line-soft:#e9eef4;
   --accent:#00893f; --accent-ink:#ffffff; --accent-soft:rgba(0,137,63,.10);
   --warn:#c41e3a; --warn-soft:rgba(196,30,58,.10);
-  --white:#f7f7f4; --yellow:#ffd400; --green:#009b48; --blue:#0046ad; --red:#c41e3a; --orange:#ff5800;
+  --white:#f4f5f3; --yellow:#ffd426; --green:#16b35a; --blue:#1668d8; --red:#e1332e; --orange:#ff7a1a;
   --void:#15181e;
-  --stage-a:#dfe6ef; --stage-b:#f6f9fc;
+  --stage-a:#ccd7e5; --stage-b:#eaf0f7;
   --shadow:0 1px 2px rgba(20,28,40,.05), 0 10px 30px rgba(20,28,40,.07);
   --font-ui:'Outfit',ui-sans-serif,system-ui,-apple-system,sans-serif;
   --font-body:'Manrope',ui-sans-serif,system-ui,-apple-system,sans-serif;
@@ -139,9 +139,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 .cube{position:absolute;left:50%;top:50%;width:0;height:0;transform-style:preserve-3d}
 .cubie{position:absolute;width:var(--s);height:var(--s);margin-left:calc(var(--s) / -2);margin-top:calc(var(--s) / -2);
   transform-style:preserve-3d}
-.st{position:absolute;inset:0;background:var(--void);border-radius:9px;backface-visibility:hidden}
-.st::after{content:"";position:absolute;inset:3px;border-radius:7px;background:var(--c,var(--void));
-  box-shadow:inset 0 -2px 4px rgba(0,0,0,.18), inset 0 2px 3px rgba(255,255,255,.28)}
+/* stickerless speed cube: the colour IS the plastic, so it runs to the edge with
+   only a thin dark seam. The inner shading is deliberately SYMMETRIC - a top-lit
+   highlight would rotate with the piece and end up lighting squares from below. */
+.st{position:absolute;inset:0;background:var(--void);border-radius:12px;backface-visibility:hidden}
+.st::after{content:"";position:absolute;inset:1px;border-radius:11px;background:var(--c,var(--void));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.07), inset 0 0 14px rgba(0,0,0,.22)}
 .caption{margin:0;text-align:center;font-size:14px;color:var(--muted);min-height:21px}
 .caption b{color:var(--ink);font-weight:600}
 
