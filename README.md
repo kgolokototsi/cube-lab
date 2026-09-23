@@ -1,4 +1,4 @@
-# Oarabile's Cube Lab
+# Oa's Cube Lab
 
 An interactive seven-step guide to solving a 3x3 Rubik's cube, built for a six-year-old who already solves a 2x2.
 
