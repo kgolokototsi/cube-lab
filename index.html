@@ -203,6 +203,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 .tryit{background:transparent;border:1px dashed var(--line);border-radius:10px;padding:7px 12px;
   font-family:var(--font-ui);font-size:13px;font-weight:500;color:var(--muted);align-self:flex-start}
 .tryit:hover{border-color:var(--accent);color:var(--accent)}
+.casegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:14px 10px}
+.casegrid figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:7px}
+.casegrid svg{width:100%;max-width:124px;height:auto;display:block}
+.casegrid figcaption{font-size:12px;line-height:1.35;color:var(--muted);text-align:center;text-wrap:balance}
 .note{display:flex;gap:9px;font-size:14px;border-radius:12px;padding:11px 13px;background:var(--accent-soft);color:var(--ink)}
 .note.alarm{background:var(--warn-soft)}
 .note .ic{font-size:16px;line-height:1.3}
@@ -887,6 +891,8 @@ var STEPS = [
          'Turn the top until a white edge’s other colour matches the middle right under it.',
          'Then turn that whole side <b>twice</b>. The white edge drops straight down.'],
    algs:[],
+   cases:[{ cells:['.','w','.','w','y','w','.','w','.'],
+            cap:'The daisy \u2014 four white edges around the yellow middle' }],
    plain:{ head:'No algorithm — but there are moves',
      body:'Every cube starts different here, so there is no one sequence to learn. There are only two little moves, used over and over:',
      items:[{ keys:'F R B L', text:'<b>Lift</b> a white edge up to the daisy — turn whichever side it is on, until white points up.' },
@@ -899,6 +905,8 @@ var STEPS = [
    look:['Find a corner with white on it, up in the top layer.',
          'Turn the top until that corner sits right above its empty home.',
          'Hold the cube so that empty home is at the <b>front, bottom, right</b>.'],
+   cases:[{ cells:['.','.','w','.','y','.','.','.','.'], hi:[2],
+            cap:'A corner with white on it, up in the top layer' }],
    algs:[{ name:'Again and again — 1, 3 or 5 times', alg:"R U R' U'" }],
    note:{ text:'You already know this one from your 2x2. The corner pops out, spins, and drops back in.' } },
 
@@ -907,6 +915,12 @@ var STEPS = [
    look:['Find a top edge with <b>no yellow</b> on it.',
          'Turn the top until its front colour matches the middle in front. That makes an upside-down T.',
          'Now look at the colour on <b>top</b> of it. Does it match the middle on the right, or the left?'],
+   cases:[{ cells:['.','g','.','.','g','.','.','.','.'], outer:[{s:'t',i:1,c:'o',hi:true}],
+            arrow:'right',
+            cap:'Upside-down T. Top colour is orange like the RIGHT middle \u2192 send it right' },
+          { cells:['.','g','.','.','g','.','.','.','.'], outer:[{s:'t',i:1,c:'r',hi:true}],
+            arrow:'left',
+            cap:'Top colour is red like the LEFT middle \u2192 send it left' }],
    algs:[{ name:'It goes right', alg:"U R U' R' U' F' U F" },
          { name:'It goes left',  alg:"U' L' U L U F U' F'" }],
    note:{ text:'The two are mirrors — same moves, other side. If an edge is stuck in the wrong middle spot, put that spot at the front right and do the right-hand one once. It pops out.' } },
@@ -916,6 +930,10 @@ var STEPS = [
    look:['<b>Dot</b> — just go.',
          '<b>L shape</b> — turn the top until the L points back and left.',
          '<b>Line</b> — turn the top until the line lies flat, left to right.'],
+   cases:[{ cells:['.','.','.','.','y','.','.','.','.'], cap:'Dot \u2014 just go' },
+          { cells:['.','y','.','y','y','.','.','.','.'], cap:'L \u2014 point it back and left, then go' },
+          { cells:['.','.','.','y','y','y','.','.','.'], cap:'Line \u2014 lay it flat left to right, then go' },
+          { cells:['.','y','.','y','y','y','.','y','.'], cap:'Cross \u2014 done, on to step 5' }],
    algs:[{ name:'Same one every time', alg:"F R U R' U' F'" }],
    note:{ text:'Dot → L → line → cross. Three goes at the most.' } },
 
@@ -925,6 +943,10 @@ var STEPS = [
          'This one <b>swaps the front edge with the left edge</b>.',
          'Find two that need to trade places. Put them at the front and the left. Go.',
          'Can’t find two? Do it once anyway, then look again.'],
+   cases:[{ cells:['.','y','.','y','y','y','.','y','.'],
+            outer:[{s:'t',i:1,c:'b'},{s:'r',i:1,c:'o'},
+                   {s:'b',i:1,c:'r',hi:true},{s:'l',i:1,c:'g',hi:true}],
+            cap:'Looking down. Back and right already match their middles. Front and left are swapped \u2014 those are the two' }],
    algs:[{ name:'Swap front and left', alg:"R U R' U R U2 R' U" }],
    note:{ text:'The corners will go messy. That is fine — the last two steps fix them.' } },
 
@@ -933,6 +955,9 @@ var STEPS = [
    look:['A corner is home when its three colours match the three middles around it.',
          'Find one that is already home. Hold it at the <b>front right</b>.',
          'None home? Do it once, then look again.'],
+   cases:[{ cells:['.','.','.','.','y','.','.','.','.'], hi:[8],
+            outer:[{s:'b',i:2,c:'g'},{s:'r',i:2,c:'o'}],
+            cap:'Front-right corner shows green and orange, and green and orange are the middles beside it \u2014 so it is home, twisted or not' }],
    algs:[{ name:'Spin the other three round', alg:"U R U' L' U R' U' L" }],
    note:{ text:'This is your 2x2 job: first move the corners, then twist them.' } },
 
@@ -942,9 +967,60 @@ var STEPS = [
          'Do it 2 or 4 times, until that corner’s yellow is on top.',
          'Then turn <b>only the top</b> to bring the next bad corner to the front right.',
          'Do all four. Then turn the top to line everything up.'],
+   cases:[{ cells:['.','y','.','y','y','y','.','y','.'], hi:[8],
+            cap:'Front-right corner not yellow yet \u2014 keep repeating' },
+          { cells:['.','y','.','y','y','y','.','y','y'], hi:[8],
+            cap:'Yellow on top \u2014 turn ONLY the top to the next bad corner' }],
    algs:[{ name:'Twist one corner', alg:"R' D' R D" }],
    note:{ alarm:true, text:'Your cube will look <b>BROKEN</b>. Don’t panic and don’t turn anything else. Keep going — it fixes itself at the end.' } }
 ];
+
+/* ---------------- case pictures ----------------
+   A 3x3 face, optionally with side stickers around it, drawn as inline SVG.
+   Sticker colours are the content here, so they are literal; everything
+   structural is currentColor so it reads in both themes.                  */
+var DC = { w:'var(--white)', y:'var(--yellow)', g:'var(--green)',
+           b:'var(--blue)',  r:'var(--red)',    o:'var(--orange)' };
+var CS = 26, GAP = 4, PAD = 32, BOX = PAD * 2 + CS * 3 + GAP * 2;   /* 150 */
+
+function dcell(x, y, c, hi){
+  var known = !!DC[c];
+  var out = '<rect x="' + x + '" y="' + y + '" width="' + CS + '" height="' + CS + '" rx="5" ' +
+            (known ? 'style="fill:' + DC[c] + '"' : 'fill="currentColor" opacity=".13"') + '/>';
+  if(hi) out += '<rect x="' + (x-3.5) + '" y="' + (y-3.5) + '" width="' + (CS+7) + '" height="' + (CS+7) +
+                '" rx="8" fill="none" style="stroke:var(--accent)" stroke-width="2.5"/>';
+  return out;
+}
+function outerXY(o){
+  var far = PAD + 3*CS + 2*GAP + 6, near = PAD - CS - 6, along = PAD + o.i * (CS + GAP);
+  if(o.s === 't') return [along, near];
+  if(o.s === 'b') return [along, far];
+  if(o.s === 'l') return [near, along];
+  return [far, along];
+}
+function diagram(d){
+  var g = '', i;
+  for(i = 0; i < 9; i++){
+    g += dcell(PAD + (i % 3) * (CS + GAP), PAD + Math.floor(i / 3) * (CS + GAP),
+               d.cells[i], (d.hi || []).indexOf(i) >= 0);
+  }
+  (d.outer || []).forEach(function(o){
+    var xy = outerXY(o);
+    g += dcell(xy[0], xy[1], o.c, o.hi);
+  });
+  if(d.arrow){
+    var y = BOX / 2, dir = d.arrow === 'right' ? 1 : -1;
+    var x1 = BOX / 2 + dir * 30, x2 = BOX / 2 + dir * 62;
+    g += '<line x1="' + x1 + '" y1="' + y + '" x2="' + x2 + '" y2="' + y +
+         '" stroke="currentColor" stroke-width="3" opacity=".55" stroke-linecap="round"/>' +
+         '<polygon points="' + x2 + ',' + (y-6) + ' ' + x2 + ',' + (y+6) + ' ' + (x2 + dir*10) + ',' + y +
+         '" fill="currentColor" opacity=".55"/>';
+  }
+  var w = d.arrow ? BOX + 80 : BOX;
+  var ox = d.arrow && d.arrow === 'left' ? 80 : 0;
+  return '<figure><svg viewBox="' + (-ox) + ' 0 ' + w + ' ' + BOX + '" role="img" aria-label="' +
+         d.cap.replace(/"/g, '') + '">' + g + '</svg><figcaption>' + d.cap + '</figcaption></figure>';
+}
 
 /* ---------------- state ---------------- */
 var state = newCube();
@@ -1274,6 +1350,14 @@ function renderPanel(){
   look.className = 'block';
   look.innerHTML = '<h3>What to look for</h3>' + st.look.map(function(l){ return '<p>' + l + '</p>'; }).join('');
   panelEl.appendChild(look);
+
+  if(st.cases && st.cases.length){
+    var cs = document.createElement('div');
+    cs.className = 'block';
+    cs.innerHTML = '<h3>' + (st.cases.length > 1 ? 'Which one are you looking at?' : 'What it looks like') +
+      '</h3><div class="casegrid">' + st.cases.map(diagram).join('') + '</div>';
+    panelEl.appendChild(cs);
+  }
 
   if(st.algs.length){
     var a = document.createElement('div');
