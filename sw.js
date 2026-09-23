@@ -1,5 +1,5 @@
 /* Cube Lab service worker - precache everything, then serve from cache first. */
-var CACHE = "cubelab-20260923-1541";
+var CACHE = "cubelab-20260923-1548";
 var ASSETS = ["./","./index.html","./manifest.webmanifest",
               "./icon-180.png","./icon-192.png","./icon-512.png","./icon-512-maskable.png"];
 

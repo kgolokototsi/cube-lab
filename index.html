@@ -1041,6 +1041,9 @@ function rotLabel(t){ return t === 'y' ? 'Turn the cube: right side comes to the
 function renderStrip(){
   stripEl.textContent = '';
   keyEls = [];
+  /* qi is the NEXT move to play, so the one being turned and spoken is qi-1.
+     Highlighting qi put the marker a move ahead of the voice and the cube. */
+  var cur = qi - 1;
   for(var i=0;i<queue.length;i++){
     var mv = queue[i];
     if(mv.step){
@@ -1050,13 +1053,13 @@ function renderStrip(){
       stripEl.appendChild(tag);
     }
     var k = document.createElement('span');
-    k.className = 'key' + (mv.t.charAt(0) === 'y' ? ' rot' : '') + (i < qi ? ' past' : '') + (i === qi ? ' now' : '');
+    k.className = 'key' + (mv.t.charAt(0) === 'y' ? ' rot' : '') + (i < cur ? ' past' : '') + (i === cur ? ' now' : '');
     k.textContent = pretty(mv.t);
     if(mv.t.charAt(0) === 'y') k.title = rotLabel(mv.t);
     stripEl.appendChild(k);
     keyEls.push(k);
   }
-  var act = keyEls[qi] || keyEls[qi-1];
+  var act = keyEls[cur] || keyEls[0];
   if(act && act.scrollIntoView) act.scrollIntoView({ inline:'center', block:'nearest' });
 }
 function setCaption(html){ capEl.innerHTML = html; }
