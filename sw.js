@@ -1,7 +1,7 @@
 /* Cube Lab service worker - precache everything, then serve from cache first. */
-var CACHE = "cubelab-20260923-1142";
+var CACHE = "cubelab-20260923-1149";
 var ASSETS = ["./","./index.html","./manifest.webmanifest",
-              "./icon-192.png","./icon-512.png","./icon-512-maskable.png"];
+              "./icon-180.png","./icon-192.png","./icon-512.png","./icon-512-maskable.png"];
 
 self.addEventListener("install", function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(ASSETS); })
