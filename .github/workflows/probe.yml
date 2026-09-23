@@ -1,0 +1,17 @@
+name: probe
+on: [push, workflow_dispatch]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch the Pages site from outside
+        run: |
+          URL="https://kgolokototsi.github.io/cube-lab/"
+          echo "PROBE_START"
+          for p in "" "manifest.webmanifest" "sw.js" "icon-180.png"; do
+            code=$(curl -s -o /tmp/b -w '%{http_code}' --max-time 25 "$URL$p" || echo 000)
+            size=$(stat -c %s /tmp/b 2>/dev/null || echo 0)
+            echo "PROBE /$p -> HTTP $code (${size} bytes)"
+          done
+          echo "PROBE_TITLE $(curl -s --max-time 25 "$URL" | grep -o '<title>[^<]*</title>' | head -1)"
+          echo "PROBE_END"
